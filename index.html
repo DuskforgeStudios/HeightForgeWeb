@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HeightForge Studio – Procedural Heightmap Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Variables ─────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#c4a35a;
+  --gold-light:#e8c87a;
+  --gold-dim:#8a6e3a;
+  --bg:#0d0b08;
+  --bg2:#141208;
+  --bg3:#1a1610;
+  --bg4:#211d15;
+  --surface:#2a2419;
+  --border:#3d3528;
+  --border-light:#4f4636;
+  --text:#e8dfc8;
+  --text-muted:#a89878;
+  --text-dim:#6a5e48;
+  --white:#f5f0e8;
+  --danger:#c45a5a;
+  --success:#5a8a5a;
+  --info:#5a7a9a;
+  --font-display:'Cormorant Garamond',serif;
+  --font-body:'Outfit',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  cursor:default;
+}
+
+/* ── Typography ────────────────────────────────────────────────── */
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;line-height:1.1}
+p{line-height:1.75;color:var(--text-muted);font-weight:300}
+a{color:var(--gold);text-decoration:none;transition:color .2s}
+a:hover{color:var(--gold-light)}
+code,pre{font-family:var(--font-mono)}
+
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--gold-dim)}
+
+/* ── Page routing ──────────────────────────────────────────────── */
+.page{display:none;animation:fadeIn .35s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ── Nav ───────────────────────────────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;height:64px;
+  background:rgba(13,11,8,.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(61,53,40,.5);
+  transition:background .3s;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+}
+.nav-logo-mark{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--gold-dim),var(--gold));
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+}
+.nav-logo-text{
+  font-family:var(--font-display);font-size:20px;font-weight:600;
+  letter-spacing:.04em;color:var(--text);
+}
+.nav-logo-text span{color:var(--gold)}
+.beta-badge{
+  font-family:var(--font-mono);font-size:9px;font-weight:500;
+  background:var(--gold);color:var(--bg);
+  padding:2px 6px;border-radius:2px;letter-spacing:.12em;
+  text-transform:uppercase;vertical-align:super;margin-left:4px;
+  animation:pulse-badge 3s ease-in-out infinite;
+}
+@keyframes pulse-badge{
+  0%,100%{box-shadow:0 0 0 0 rgba(196,163,90,.4)}
+  50%{box-shadow:0 0 0 4px rgba(196,163,90,0)}
+}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-link{
+  font-size:13px;font-weight:400;color:var(--text-muted);
+  padding:6px 14px;border-radius:4px;cursor:pointer;
+  transition:color .2s,background .2s;border:none;background:none;
+  font-family:var(--font-body);letter-spacing:.02em;
+}
+.nav-link:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.nav-link.active{color:var(--gold)}
+.nav-download{
+  font-size:13px;font-weight:500;
+  background:var(--gold);color:var(--bg);
+  padding:8px 20px;border-radius:4px;cursor:pointer;
+  transition:background .2s,transform .1s;border:none;
+  font-family:var(--font-body);letter-spacing:.02em;
+}
+.nav-download:hover{background:var(--gold-light);transform:translateY(-1px)}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-body);font-size:14px;font-weight:500;
+  padding:12px 28px;border-radius:4px;cursor:pointer;
+  transition:all .2s;border:none;text-decoration:none;
+  letter-spacing:.02em;
+}
+.btn-primary{background:var(--gold);color:var(--bg)}
+.btn-primary:hover{background:var(--gold-light);color:var(--bg);transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,163,90,.25)}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border-light)}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px)}
+.btn-ghost{background:transparent;color:var(--text-muted);border:none}
+.btn-ghost:hover{color:var(--text)}
+.btn-sm{padding:8px 18px;font-size:13px}
+.btn-lg{padding:16px 40px;font-size:16px}
+
+/* ── Section helpers ───────────────────────────────────────────── */
+.section{padding:100px 0}
+.section-sm{padding:64px 0}
+.container{max-width:1140px;margin:0 auto;padding:0 48px}
+.section-label{
+  font-family:var(--font-mono);font-size:11px;font-weight:500;
+  color:var(--gold);letter-spacing:.18em;text-transform:uppercase;
+  margin-bottom:16px;display:block;
+}
+.section-title{font-size:clamp(36px,4vw,56px);color:var(--white);margin-bottom:20px}
+.section-sub{font-size:16px;max-width:560px;color:var(--text-muted)}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0}
+
+/* ── Terrain canvas background ─────────────────────────────────── */
+#terrain-bg{position:absolute;inset:0;opacity:.18;pointer-events:none}
+
+/* ── HERO ──────────────────────────────────────────────────────── */
+.hero{
+  position:relative;min-height:100vh;
+  display:flex;align-items:center;
+  overflow:hidden;padding-top:64px;
+}
+.hero-noise{
+  position:absolute;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.06'/%3E%3C/svg%3E");
+  pointer-events:none;opacity:.4;
+}
+.hero-glow{
+  position:absolute;
+  width:800px;height:800px;
+  background:radial-gradient(circle,rgba(196,163,90,.08) 0%,transparent 70%);
+  top:-200px;right:-200px;pointer-events:none;
+}
+.hero-glow2{
+  position:absolute;
+  width:600px;height:600px;
+  background:radial-gradient(circle,rgba(90,122,154,.06) 0%,transparent 70%);
+  bottom:-100px;left:-100px;pointer-events:none;
+}
+.hero-content{position:relative;z-index:2;padding:80px 0}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--font-mono);font-size:11px;color:var(--gold-dim);
+  letter-spacing:.2em;text-transform:uppercase;margin-bottom:32px;
+}
+.hero-eyebrow::before{content:'';width:32px;height:1px;background:var(--gold-dim)}
+.hero-title{
+  font-size:clamp(56px,7vw,100px);
+  color:var(--white);line-height:1;
+  margin-bottom:12px;
+}
+.hero-title .accent{
+  color:transparent;
+  -webkit-text-stroke:1px var(--gold);
+}
+.hero-subtitle{
+  font-family:var(--font-display);font-size:clamp(22px,2.5vw,32px);
+  font-weight:300;color:var(--text-muted);
+  margin-bottom:48px;letter-spacing:.02em;
+}
+.hero-ctas{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:64px}
+.hero-stats{display:flex;gap:48px;flex-wrap:wrap}
+.stat-item{}
+.stat-num{
+  font-family:var(--font-display);font-size:36px;font-weight:600;
+  color:var(--gold);line-height:1;
+}
+.stat-label{font-size:12px;color:var(--text-dim);margin-top:4px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--font-mono)}
+.hero-visual{
+  position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:55%;height:90vh;pointer-events:none;
+  opacity:.6;
+}
+
+/* ── Terrain SVG mockup ────────────────────────────────────────── */
+.terrain-mockup{
+  width:100%;height:100%;
+  position:relative;
+}
+
+/* ── Features ──────────────────────────────────────────────────── */
+.features-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:8px;overflow:hidden;
+}
+.feature-card{
+  background:var(--bg3);padding:36px 32px;
+  transition:background .25s;position:relative;overflow:hidden;
+}
+.feature-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(196,163,90,.04),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.feature-card:hover{background:var(--bg4)}
+.feature-card:hover::before{opacity:1}
+.feature-icon{
+  width:44px;height:44px;border-radius:8px;
+  background:rgba(196,163,90,.1);border:1px solid rgba(196,163,90,.2);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;font-size:20px;
+}
+.feature-title{font-size:18px;color:var(--white);margin-bottom:10px;font-family:var(--font-display);font-weight:600}
+.feature-desc{font-size:14px;line-height:1.65;color:var(--text-muted)}
+.feature-tag{
+  display:inline-block;margin-top:16px;
+  font-family:var(--font-mono);font-size:10px;
+  color:var(--gold-dim);letter-spacing:.1em;text-transform:uppercase;
+}
+
+/* ── Engine highlight ──────────────────────────────────────────── */
+.engine-section{background:var(--bg2);position:relative;overflow:hidden}
+.engine-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.engine-visual{position:relative}
+.app-window{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(196,163,90,.08);
+}
+.app-titlebar{
+  height:38px;background:var(--bg4);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:8px;
+}
+.win-dot{width:10px;height:10px;border-radius:50%}
+.win-dot.r{background:#c45a5a}.win-dot.y{background:#c4a35a}.win-dot.g{background:#5a8a5a}
+.app-titlebar-text{
+  font-family:var(--font-mono);font-size:11px;color:var(--text-dim);
+  margin:0 auto;
+}
+.app-body{display:flex;height:420px}
+.app-sidebar{
+  width:200px;background:var(--bg4);border-right:1px solid var(--border);
+  padding:12px 8px;flex-shrink:0;
+}
+.app-sidebar-item{
+  padding:8px 10px;border-radius:4px;font-size:12px;
+  color:var(--text-dim);margin-bottom:2px;cursor:default;
+  font-family:var(--font-mono);
+}
+.app-sidebar-item.active{
+  background:rgba(196,163,90,.12);color:var(--gold);
+  border-left:2px solid var(--gold);padding-left:8px;
+}
+.app-canvas{
+  flex:1;background:var(--bg2);position:relative;overflow:hidden;
+}
+.app-canvas-label{
+  position:absolute;top:12px;left:12px;
+  font-family:var(--font-mono);font-size:10px;color:var(--text-dim);
+  letter-spacing:.1em;text-transform:uppercase;
+}
+
+/* ── Workflow steps ─────────────────────────────────────────────── */
+.workflow-steps{display:flex;flex-direction:column;gap:0}
+.workflow-step{
+  display:flex;gap:24px;padding:28px 0;
+  border-bottom:1px solid var(--border);
+  position:relative;
+}
+.workflow-step:last-child{border-bottom:none}
+.step-num{
+  font-family:var(--font-display);font-size:48px;font-weight:700;
+  color:rgba(196,163,90,.15);line-height:1;flex-shrink:0;width:56px;
+  transition:color .3s;
+}
+.workflow-step:hover .step-num{color:rgba(196,163,90,.4)}
+.step-content{}
+.step-tag{
+  font-family:var(--font-mono);font-size:10px;color:var(--gold-dim);
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;
+}
+.step-title{font-size:22px;color:var(--white);margin-bottom:8px;font-family:var(--font-display)}
+.step-desc{font-size:14px;color:var(--text-muted)}
+
+/* ── Engine grid ─────────────────────────────────────────────────── */
+.engine-text .section-sub{max-width:480px}
+.spec-list{margin-top:32px;display:flex;flex-direction:column;gap:12px}
+.spec-item{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 20px;background:var(--bg3);
+  border:1px solid var(--border);border-radius:6px;
+}
+.spec-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0}
+.spec-label{font-size:14px;color:var(--text);flex:1}
+.spec-value{font-family:var(--font-mono);font-size:12px;color:var(--gold-dim)}
+
+/* ── Showcase ──────────────────────────────────────────────────── */
+.showcase-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:20px;
+}
+.showcase-card{
+  aspect-ratio:4/3;border-radius:8px;overflow:hidden;
+  position:relative;cursor:pointer;
+  border:1px solid var(--border);
+  transition:transform .3s,box-shadow .3s;
+}
+.showcase-card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+}
+.showcase-card.featured{
+  grid-column:span 2;grid-row:span 2;
+  aspect-ratio:auto;
+}
+.showcase-img{
+  width:100%;height:100%;
+  background:var(--bg3);
+  display:flex;align-items:center;justify-content:center;
+}
+.showcase-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(13,11,8,.9) 0%,transparent 60%);
+  padding:20px;display:flex;flex-direction:column;justify-content:flex-end;
+  opacity:0;transition:opacity .3s;
+}
+.showcase-card:hover .showcase-overlay{opacity:1}
+.showcase-name{font-family:var(--font-display);font-size:16px;color:var(--white)}
+.showcase-meta{font-family:var(--font-mono);font-size:10px;color:var(--gold-dim);margin-top:4px}
+
+/* ── Download ──────────────────────────────────────────────────── */
+.download-hero{
+  text-align:center;padding:100px 0 60px;
+  position:relative;
+}
+.download-glow{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:600px;height:300px;
+  background:radial-gradient(ellipse,rgba(196,163,90,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.download-version{
+  font-family:var(--font-mono);font-size:12px;color:var(--gold-dim);
+  letter-spacing:.15em;margin-bottom:16px;
+}
+.download-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:20px;
+  margin:48px 0;
+}
+.download-card{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:32px 28px;text-align:center;
+  transition:border-color .25s,transform .25s;
+  position:relative;overflow:hidden;
+}
+.download-card::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  transform:scaleX(0);transition:transform .3s;
+}
+.download-card:hover{border-color:var(--gold-dim);transform:translateY(-4px)}
+.download-card:hover::after{transform:scaleX(1)}
+.download-os{font-size:36px;margin-bottom:16px}
+.download-platform{
+  font-family:var(--font-display);font-size:22px;color:var(--white);
+  margin-bottom:6px;
+}
+.download-arch{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-bottom:24px}
+.download-req{
+  margin-top:16px;font-family:var(--font-mono);font-size:10px;
+  color:var(--text-dim);line-height:1.8;text-align:left;
+  background:var(--bg2);border-radius:4px;padding:12px;
+}
+.changelog-section{background:var(--bg2)}
+.changelog-entry{
+  border-left:2px solid var(--border);padding-left:28px;
+  margin-bottom:40px;position:relative;
+}
+.changelog-entry::before{
+  content:'';position:absolute;left:-5px;top:6px;
+  width:8px;height:8px;border-radius:50%;background:var(--border);
+}
+.changelog-entry.latest::before{background:var(--gold)}
+.changelog-entry.latest{border-left-color:var(--gold-dim)}
+.changelog-version{
+  font-family:var(--font-mono);font-size:13px;color:var(--gold);
+  margin-bottom:4px;
+}
+.changelog-date{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-bottom:16px}
+.changelog-items{list-style:none;display:flex;flex-direction:column;gap:8px}
+.changelog-item{
+  display:flex;align-items:baseline;gap:10px;font-size:14px;color:var(--text-muted);
+}
+.cl-tag{
+  font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:3px;
+  flex-shrink:0;text-transform:uppercase;letter-spacing:.08em;
+}
+.cl-new{background:rgba(90,138,90,.15);color:#5aaa5a}
+.cl-fix{background:rgba(90,122,154,.15);color:#7ab8e8}
+.cl-imp{background:rgba(196,163,90,.12);color:var(--gold)}
+
+/* ── Docs ──────────────────────────────────────────────────────── */
+.docs-layout{display:grid;grid-template-columns:240px 1fr;gap:48px;padding-top:32px}
+.docs-nav{position:sticky;top:80px;height:fit-content}
+.docs-nav-section{margin-bottom:24px}
+.docs-nav-label{
+  font-family:var(--font-mono);font-size:10px;color:var(--text-dim);
+  letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;
+}
+.docs-nav-item{
+  display:block;font-size:13px;color:var(--text-muted);
+  padding:5px 0;cursor:pointer;transition:color .2s;border:none;background:none;
+  font-family:var(--font-body);text-align:left;
+}
+.docs-nav-item:hover{color:var(--gold)}
+.docs-nav-item.active{color:var(--gold)}
+.docs-content h2{
+  font-size:32px;color:var(--white);margin:48px 0 16px;
+  border-bottom:1px solid var(--border);padding-bottom:16px;
+}
+.docs-content h2:first-child{margin-top:0}
+.docs-content h3{font-size:22px;color:var(--white);margin:32px 0 12px}
+.docs-content p{font-size:15px;color:var(--text-muted);margin-bottom:16px}
+.docs-content ul{margin:0 0 16px 20px;color:var(--text-muted);font-size:15px;line-height:1.8}
+.code-block{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:6px;padding:20px 24px;margin:16px 0;
+  font-family:var(--font-mono);font-size:13px;
+  color:var(--text);overflow-x:auto;line-height:1.8;
+}
+.code-block .c{color:var(--text-dim)}
+.code-block .k{color:#7ab8e8}
+.code-block .s{color:#5aaa5a}
+.code-block .n{color:var(--gold)}
+.callout{
+  border-left:3px solid var(--gold);background:rgba(196,163,90,.06);
+  border-radius:0 6px 6px 0;padding:16px 20px;margin:20px 0;
+}
+.callout p{margin:0;color:var(--text)}
+.callout.info{border-left-color:var(--info);background:rgba(90,122,154,.06)}
+.callout.warning{border-left-color:#c4a35a;background:rgba(196,163,90,.06)}
+
+/* ── Footer ────────────────────────────────────────────────────── */
+footer{
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:60px 0 32px;
+}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
+.footer-brand{}
+.footer-logo{
+  font-family:var(--font-display);font-size:22px;font-weight:600;
+  color:var(--white);margin-bottom:12px;
+}
+.footer-logo span{color:var(--gold)}
+.footer-desc{font-size:13px;color:var(--text-dim);line-height:1.7;max-width:260px}
+.footer-col-title{
+  font-family:var(--font-mono);font-size:10px;color:var(--text-dim);
+  letter-spacing:.15em;text-transform:uppercase;margin-bottom:16px;
+}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:10px}
+.footer-links li button,.footer-links li a{
+  font-size:13px;color:var(--text-muted);background:none;border:none;
+  cursor:pointer;font-family:var(--font-body);transition:color .2s;text-align:left;padding:0;
+}
+.footer-links li button:hover,.footer-links li a:hover{color:var(--gold)}
+.footer-bottom{
+  display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--border);padding-top:24px;
+}
+.footer-copy{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+.footer-legal{display:flex;gap:24px}
+.footer-legal span{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);cursor:pointer}
+.footer-legal span:hover{color:var(--gold-dim)}
+
+/* ── Terrain SVG animations ────────────────────────────────────── */
+@keyframes terrain-drift{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+@keyframes scanline{
+  0%{transform:translateY(-100%)}
+  100%{transform:translateY(100vh)}
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media(max-width:900px){
+  nav{padding:0 20px}
+  .nav-links .nav-link:not(.nav-download){display:none}
+  .container{padding:0 20px}
+  .hero-visual{display:none}
+  .features-grid{grid-template-columns:1fr}
+  .engine-grid{grid-template-columns:1fr}
+  .showcase-grid{grid-template-columns:1fr 1fr}
+  .showcase-card.featured{grid-column:span 1;grid-row:span 1}
+  .download-grid{grid-template-columns:1fr}
+  .docs-layout{grid-template-columns:1fr}
+  .docs-nav{display:none}
+  .footer-grid{grid-template-columns:1fr 1fr}
+}
+
+/* ── Selection ─────────────────────────────────────────────────── */
+::selection{background:rgba(196,163,90,.2);color:var(--white)}
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ─────────────────────────────────────────────── -->
+<nav id="nav">
+  <div class="nav-logo" onclick="showPage('home')">
+    <div class="nav-logo-mark"></div>
+    <div class="nav-logo-text">Height<span>Forge</span> <span class="beta-badge">BETA</span></div>
+  </div>
+  <div class="nav-links">
+    <button class="nav-link active" id="nav-home" onclick="showPage('home')">Home</button>
+    <button class="nav-link" id="nav-features" onclick="showPage('features')">Features</button>
+    <button class="nav-link" id="nav-showcase" onclick="showPage('showcase')">Showcase</button>
+    <button class="nav-link" id="nav-docs" onclick="showPage('docs')">Docs</button>
+    <button class="nav-link" id="nav-changelog" onclick="showPage('changelog')">Changelog</button>
+    <button class="nav-download btn btn-primary btn-sm" onclick="showPage('download')">Download</button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: HOME
+═══════════════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-noise"></div>
+    <div class="hero-glow"></div>
+    <div class="hero-glow2"></div>
+
+    <!-- Procedural terrain background -->
+    <svg id="terrain-bg" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="glow-f"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <!-- Terrain layers (generated contour map) -->
+      <path d="M0,600 C120,540 240,480 360,460 C480,440 600,500 720,480 C840,460 960,380 1080,350 C1200,320 1320,360 1440,380 L1440,900 L0,900Z" fill="rgba(196,163,90,0.06)"/>
+      <path d="M0,650 C140,580 280,520 420,510 C560,500 700,560 840,530 C980,500 1100,420 1220,400 C1340,380 1400,420 1440,440 L1440,900 L0,900Z" fill="rgba(196,163,90,0.04)"/>
+      <path d="M0,700 C180,650 360,600 540,590 C720,580 900,620 1080,600 C1260,580 1380,560 1440,550 L1440,900 L0,900Z" fill="rgba(196,163,90,0.03)"/>
+      <!-- Ridge lines -->
+      <path d="M200,480 C280,440 360,400 460,380 C560,360 680,370 780,340 C880,310 980,290 1100,300" stroke="rgba(196,163,90,0.15)" stroke-width="1.5" fill="none" filter="url(#glow-f)"/>
+      <path d="M0,420 C100,390 200,360 320,350 C440,340 560,370 680,350 C800,330 920,300 1040,280 C1160,260 1300,270 1440,290" stroke="rgba(196,163,90,0.08)" stroke-width="1" fill="none"/>
+      <path d="M0,500 C80,470 180,440 300,430 C420,420 540,460 660,440 C780,420 900,380 1020,360" stroke="rgba(196,163,90,0.06)" stroke-width="1" fill="none"/>
+      <!-- Grid dots -->
+      <g opacity="0.12">
+        <circle cx="360" cy="380" r="2" fill="var(--gold)"/>
+        <circle cx="480" cy="350" r="1.5" fill="var(--gold)"/>
+        <circle cx="720" cy="310" r="2" fill="var(--gold)"/>
+        <circle cx="960" cy="280" r="1.5" fill="var(--gold)"/>
+        <circle cx="1080" cy="300" r="2" fill="var(--gold)"/>
+        <circle cx="840" cy="340" r="1.5" fill="var(--gold)"/>
+      </g>
+    </svg>
+
+    <div class="container">
+      <div class="hero-content" style="max-width:620px">
+        <div class="hero-eyebrow">Procedural Terrain Generation</div>
+        <h1 class="hero-title">Height<br><span class="accent">Forge</span></h1>
+        <p class="hero-subtitle">Studio-grade heightmaps.<br>No subscription. No compromise.</p>
+        <div class="hero-ctas">
+          <button class="btn btn-primary btn-lg" onclick="showPage('download')">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Free Download
+          </button>
+          <button class="btn btn-outline btn-lg" onclick="showPage('features')">Explore Features →</button>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <div class="stat-num">64K</div>
+            <div class="stat-label">Max resolution</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">4</div>
+            <div class="stat-label">Export formats</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">6</div>
+            <div class="stat-label">Biome presets</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">0€</div>
+            <div class="stat-label">Forever free</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- App window preview floating right -->
+    <div class="hero-visual">
+      <svg viewBox="0 0 680 560" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+        <!-- App window -->
+        <rect x="20" y="40" width="640" height="480" rx="10" fill="#1a1610" stroke="#3d3528" stroke-width="1"/>
+        <rect x="20" y="40" width="640" height="38" rx="10" fill="#211d15"/>
+        <rect x="20" y="62" width="640" height="16" fill="#211d15"/>
+        <circle cx="46" cy="59" r="5" fill="#c45a5a" opacity=".7"/>
+        <circle cx="62" cy="59" r="5" fill="#c4a35a" opacity=".7"/>
+        <circle cx="78" cy="59" r="5" fill="#5a8a5a" opacity=".7"/>
+        <text x="340" y="63" text-anchor="middle" font-family="monospace" font-size="11" fill="#4f4636">HeightForge Studio 2.0.0</text>
+        <!-- Sidebar -->
+        <rect x="20" y="78" width="180" height="442" fill="#211d15" stroke="#3d3528" stroke-width="1"/>
+        <!-- Sidebar items -->
+        <rect x="28" y="92" width="164" height="32" rx="4" fill="rgba(196,163,90,0.12)"/>
+        <rect x="30" y="100" width="3" height="16" rx="1" fill="#c4a35a"/>
+        <text x="42" y="113" font-family="monospace" font-size="11" fill="#c4a35a">1. Island Mask</text>
+        <text x="36" y="142" font-family="monospace" font-size="11" fill="#6a5e48">2. Forest Mask</text>
+        <text x="36" y="166" font-family="monospace" font-size="11" fill="#6a5e48">3. Mountains</text>
+        <text x="36" y="190" font-family="monospace" font-size="11" fill="#6a5e48">4. Rivers</text>
+        <text x="36" y="214" font-family="monospace" font-size="11" fill="#6a5e48">5. Export</text>
+        <!-- Sliders -->
+        <text x="28" y="250" font-family="monospace" font-size="9" fill="#a89878">Küste</text>
+        <rect x="28" y="255" width="140" height="3" rx="1" fill="#2a2419"/>
+        <rect x="28" y="255" width="60" height="3" rx="1" fill="#c4a35a"/>
+        <circle cx="88" cy="256" r="5" fill="#c4a35a"/>
+        <text x="28" y="276" font-family="monospace" font-size="9" fill="#a89878">Form</text>
+        <rect x="28" y="281" width="140" height="3" rx="1" fill="#2a2419"/>
+        <rect x="28" y="281" width="80" height="3" rx="1" fill="#c4a35a"/>
+        <circle cx="108" cy="282" r="5" fill="#c4a35a"/>
+        <text x="28" y="302" font-family="monospace" font-size="9" fill="#a89878">Rauheit</text>
+        <rect x="28" y="307" width="140" height="3" rx="1" fill="#2a2419"/>
+        <rect x="28" y="307" width="90" height="3" rx="1" fill="#c4a35a"/>
+        <circle cx="118" cy="308" r="5" fill="#c4a35a"/>
+        <!-- Generate button -->
+        <rect x="28" y="328" width="164" height="30" rx="4" fill="#c4a35a"/>
+        <text x="110" y="347" text-anchor="middle" font-family="monospace" font-size="11" fill="#1a1610" font-weight="bold">▶ Generieren</text>
+        <!-- Preview thumbnail -->
+        <rect x="28" y="375" width="164" height="110" rx="4" fill="#0d0b08" stroke="#3d3528"/>
+        <!-- Procedural terrain in thumbnail -->
+        <path d="M28,440 C55,425 82,408 109,402 C136,396 163,410 190,404 L192,485 L28,485Z" fill="rgba(196,163,90,0.3)"/>
+        <path d="M28,455 C60,442 92,430 124,428 C156,426 176,438 192,435 L192,485 L28,485Z" fill="rgba(196,163,90,0.2)"/>
+        <!-- Canvas area -->
+        <rect x="200" y="78" width="460" height="442" fill="#0d0c0a"/>
+        <!-- Terrain in canvas -->
+        <path d="M200,380 C260,340 320,300 380,285 C440,270 500,295 560,275 C620,255 630,240 660,235" stroke="rgba(196,163,90,0.4)" stroke-width="1.5" fill="none"/>
+        <path d="M200,420 C270,390 340,360 420,350 C500,340 560,365 640,355 L660,520 L200,520Z" fill="rgba(196,163,90,0.08)"/>
+        <path d="M200,460 C280,440 360,420 460,415 C560,410 620,430 660,425 L660,520 L200,520Z" fill="rgba(196,163,90,0.05)"/>
+        <!-- Brush cursor -->
+        <circle cx="420" cy="350" r="24" stroke="rgba(196,163,90,0.6)" stroke-width="1.5" fill="none" stroke-dasharray="4 2"/>
+        <!-- Grid overlay faint -->
+        <line x1="320" y1="78" x2="320" y2="520" stroke="#1a1610" stroke-width=".5" opacity=".4"/>
+        <line x1="440" y1="78" x2="440" y2="520" stroke="#1a1610" stroke-width=".5" opacity=".4"/>
+        <line x1="560" y1="78" x2="560" y2="520" stroke="#1a1610" stroke-width=".5" opacity=".4"/>
+        <line x1="200" y1="200" x2="660" y2="200" stroke="#1a1610" stroke-width=".5" opacity=".4"/>
+        <line x1="200" y1="340" x2="660" y2="340" stroke="#1a1610" stroke-width=".5" opacity=".4"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Engine targets -->
+  <section class="section-sm" style="background:var(--bg2)">
+    <div class="container">
+      <p style="text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);letter-spacing:.2em;text-transform:uppercase;margin-bottom:28px">Compatible with</p>
+      <div style="display:flex;gap:40px;justify-content:center;align-items:center;flex-wrap:wrap;opacity:.5">
+        <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-muted)">Unity</div>
+        <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-muted)">Unreal Engine</div>
+        <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-muted)">Godot</div>
+        <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-muted)">Houdini</div>
+        <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-muted)">Blender</div>
+        <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-muted)">GameMaker</div>
+        <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-muted)">World Machine</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick feature overview -->
+  <section class="section">
+    <div class="container">
+      <div style="text-align:center;margin-bottom:64px">
+        <span class="section-label">Why HeightForge</span>
+        <h2 class="section-title">Built for game developers,<br>not geographers</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <div class="feature-title">Paint + Generate</div>
+          <div class="feature-desc">Draw masks with a soft brush, then let the engine fill in procedural detail. Full artistic control with zero frustration.</div>
+          <div class="feature-tag">Workflow</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚗️</div>
+          <div class="feature-title">Visual Erosion Nodes</div>
+          <div class="feature-desc">Connect hydraulic, thermal, and wind erosion nodes in a drag-and-drop pipeline. See results in real time.</div>
+          <div class="feature-tag">Pro Feature</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📤</div>
+          <div class="feature-title">Engine-Ready Export</div>
+          <div class="feature-desc">PNG-16bit for Unity/Godot, EXR-32bit for Unreal, TIFF for Houdini. Every format, one click, up to 64K resolution.</div>
+          <div class="feature-tag">Export</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-title">GPU Accelerated</div>
+          <div class="feature-desc">Optional CuPy backend for NVIDIA CUDA and AMD ROCm. Silently falls back to CPU — no crashes, no setup headaches.</div>
+          <div class="feature-tag">Performance</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">↩️</div>
+          <div class="feature-title">Full Undo / Redo</div>
+          <div class="feature-desc">20-level undo stack, Ctrl+Z that actually works. Experiment freely — nothing is permanent until you export.</div>
+          <div class="feature-tag">Quality of life</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💾</div>
+          <div class="feature-title">Project Files</div>
+          <div class="feature-desc">Save and reopen .hfproj files. All masks, parameters, and settings preserved. Pick up exactly where you left off.</div>
+          <div class="feature-tag">Workflow</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:40px">
+        <button class="btn btn-outline" onclick="showPage('features')">All features →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section" style="background:var(--bg2)">
+    <div class="container" style="text-align:center">
+      <span class="section-label">Free, forever</span>
+      <h2 class="section-title" style="margin-bottom:16px">Start building worlds today</h2>
+      <p style="margin:0 auto 40px;max-width:480px">No account required. No watermarks. No export limits. HeightForge is free to use — forever.</p>
+      <button class="btn btn-primary btn-lg" onclick="showPage('download')">Download HeightForge Beta</button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">Height<span>Forge</span> <span class="beta-badge" style="font-size:8px">BETA</span></div>
+          <p class="footer-desc">Procedural heightmap generator for indie developers. Free to use, not open source.</p>
+        </div>
+        <div>
+          <div class="footer-col-title">Product</div>
+          <ul class="footer-links">
+            <li><button onclick="showPage('features')">Features</button></li>
+            <li><button onclick="showPage('showcase')">Showcase</button></li>
+            <li><button onclick="showPage('download')">Download</button></li>
+            <li><button onclick="showPage('changelog')">Changelog</button></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Docs</div>
+          <ul class="footer-links">
+            <li><button onclick="showPage('docs')">Getting Started</button></li>
+            <li><button onclick="showPage('docs')">Workflow Guide</button></li>
+            <li><button onclick="showPage('docs')">Export Formats</button></li>
+            <li><button onclick="showPage('docs')">GPU Setup</button></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <ul class="footer-links">
+            <li><a href="#">License Terms</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Imprint</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">© 2024 HeightForge Studio. All rights reserved. Free to use – not open source.</div>
+        <div class="footer-legal">
+          <span>v2.0.0 Beta</span>
+          <span>Built with Python + PySide6</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: FEATURES
+═══════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-features">
+  <div style="padding-top:64px">
+    <!-- Hero -->
+    <section class="section" style="background:var(--bg2);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;right:0;width:500px;height:500px;background:radial-gradient(circle,rgba(196,163,90,.05),transparent 70%);pointer-events:none"></div>
+      <div class="container">
+        <span class="section-label">Full Feature Overview</span>
+        <h1 class="section-title">Every tool an indie dev needs</h1>
+        <p class="section-sub">HeightForge is purpose-built for game development workflows — not academic cartography. Every feature exists because a developer needed it.</p>
+      </div>
+    </section>
+    <div class="divider"></div>
+
+    <!-- Workflow -->
+    <section class="section">
+      <div class="container">
+        <div class="engine-grid">
+          <div class="engine-text">
+            <span class="section-label">Core Workflow</span>
+            <h2 class="section-title" style="font-size:42px">5-step terrain pipeline</h2>
+            <p class="section-sub">A guided workflow that structures complex terrain creation into clear, manageable steps. No blank canvas anxiety.</p>
+            <div class="spec-list">
+              <div class="spec-item"><div class="spec-dot"></div><span class="spec-label">Island Mask</span><span class="spec-value">Coastline + shape</span></div>
+              <div class="spec-item"><div class="spec-dot"></div><span class="spec-label">Forest Mask</span><span class="spec-value">Density + clustering</span></div>
+              <div class="spec-item"><div class="spec-dot"></div><span class="spec-label">Mountains</span><span class="spec-value">Ridge noise + roughness</span></div>
+              <div class="spec-item"><div class="spec-dot"></div><span class="spec-label">Rivers (Fluid)</span><span class="spec-value">Flow simulation</span></div>
+              <div class="spec-item"><div class="spec-dot"></div><span class="spec-label">Export</span><span class="spec-value">Multi-format output</span></div>
+            </div>
+          </div>
+          <div class="engine-visual">
+            <div class="workflow-steps">
+              <div class="workflow-step">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-tag">Island Mask</div>
+                  <div class="step-title">Define your coastline</div>
+                  <div class="step-desc">Paint a rough island shape or auto-generate with coast width, polygon shape, and roughness sliders. The mask drives where land exists.</div>
+                </div>
+              </div>
+              <div class="workflow-step">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-tag">Forest + Mountains</div>
+                  <div class="step-title">Layer terrain types</div>
+                  <div class="step-desc">Forests cluster in valleys, mountains rise on ridges. Each layer blends organically with domain-warp filters for natural-looking transitions.</div>
+                </div>
+              </div>
+              <div class="workflow-step">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-tag">Rivers (Fluid sim)</div>
+                  <div class="step-title">Simulate water flow</div>
+                  <div class="step-desc">Gradient-based fluid simulation carves river channels along the path of least resistance. Control length and branching with a single slider.</div>
+                </div>
+              </div>
+              <div class="workflow-step">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-tag">Erosion Pro</div>
+                  <div class="step-title">Apply erosion nodes</div>
+                  <div class="step-desc">Chain hydraulic, thermal, and wind erosion nodes in a visual pipeline. Each node is GPU-accelerated and runs in a background thread.</div>
+                </div>
+              </div>
+              <div class="workflow-step">
+                <div class="step-num">05</div>
+                <div class="step-content">
+                  <div class="step-tag">Export</div>
+                  <div class="step-title">Export for your engine</div>
+                  <div class="step-desc">Choose format and resolution. From 1K to 64K, PNG to EXR. Tiled rendering ensures any resolution works without RAM overflow.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Export formats -->
+    <section class="section" style="background:var(--bg2)">
+      <div class="container">
+        <div style="text-align:center;margin-bottom:64px">
+          <span class="section-label">Export</span>
+          <h2 class="section-title">Every format your engine accepts</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+          <div class="feature-card" style="text-align:center">
+            <div style="font-family:var(--font-mono);font-size:28px;color:var(--gold);margin-bottom:12px">.png</div>
+            <div class="feature-title">PNG 16-bit</div>
+            <div class="feature-desc">Full 65535 height levels. Direct import into Unity Terrain and Godot HeightMapShape3D.</div>
+            <div class="feature-tag">Unity · Godot · GameMaker</div>
+          </div>
+          <div class="feature-card" style="text-align:center">
+            <div style="font-family:var(--font-mono);font-size:28px;color:var(--gold);margin-bottom:12px">.tiff</div>
+            <div class="feature-title">TIFF 16-bit</div>
+            <div class="feature-desc">Industry-standard format. Lossless, widely compatible with 3D software and GIS tools.</div>
+            <div class="feature-tag">Unreal · Blender · Houdini</div>
+          </div>
+          <div class="feature-card" style="text-align:center">
+            <div style="font-family:var(--font-mono);font-size:28px;color:var(--gold);margin-bottom:12px">.exr</div>
+            <div class="feature-title">EXR 32-bit</div>
+            <div class="feature-desc">Maximum floating-point precision. Ideal for VFX pipelines and high-end terrain rendering.</div>
+            <div class="feature-tag">Houdini · Maya · Nuke</div>
+          </div>
+          <div class="feature-card" style="text-align:center">
+            <div style="font-family:var(--font-mono);font-size:28px;color:var(--gold);margin-bottom:12px">.raw</div>
+            <div class="feature-title">RAW 16-bit</div>
+            <div class="feature-desc">Binary raw output for World Machine compatibility and custom engine importers.</div>
+            <div class="feature-tag">World Machine · Custom</div>
+          </div>
+        </div>
+        <div style="margin-top:32px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:20px 28px;display:flex;align-items:center;gap:20px">
+          <div style="font-size:32px">🗺️</div>
+          <div>
+            <div style="font-size:15px;color:var(--white);font-family:var(--font-display);margin-bottom:4px">Tiled export up to 65,536 × 65,536 pixels</div>
+            <div style="font-size:13px;color:var(--text-muted)">Renders in 2048px chunks to avoid memory limits. Any resolution, any machine. Available in RAW format.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Biome presets -->
+    <section class="section">
+      <div class="container">
+        <span class="section-label">Biome Presets</span>
+        <h2 class="section-title">Six terrain archetypes, one click</h2>
+        <p class="section-sub" style="margin-bottom:48px">Each preset is a hand-tuned starting point. Tweak from there — don't start from scratch.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div class="feature-card" style="display:flex;align-items:flex-start;gap:16px;padding:24px">
+            <span style="font-size:28px">🌋</span>
+            <div>
+              <div class="feature-title">Vulkaninsel</div>
+              <div class="feature-desc">Steep caldera, dominant peak, sparse vegetation.</div>
+            </div>
+          </div>
+          <div class="feature-card" style="display:flex;align-items:flex-start;gap:16px;padding:24px">
+            <span style="font-size:28px">🏔</span>
+            <div>
+              <div class="feature-title">Alpenregion</div>
+              <div class="feature-desc">Broad mountain chains, dense valley forests, many rivers.</div>
+            </div>
+          </div>
+          <div class="feature-card" style="display:flex;align-items:flex-start;gap:16px;padding:24px">
+            <span style="font-size:28px">🏜</span>
+            <div>
+              <div class="feature-title">Wüsteninsel</div>
+              <div class="feature-desc">Flat terrain, minimal vegetation, wide coastline.</div>
+            </div>
+          </div>
+          <div class="feature-card" style="display:flex;align-items:flex-start;gap:16px;padding:24px">
+            <span style="font-size:28px">🌿</span>
+            <div>
+              <div class="feature-title">Dschungelarchipel</div>
+              <div class="feature-desc">Irregular islands, maximum vegetation, dense waterways.</div>
+            </div>
+          </div>
+          <div class="feature-card" style="display:flex;align-items:flex-start;gap:16px;padding:24px">
+            <span style="font-size:28px">❄</span>
+            <div>
+              <div class="feature-title">Tundra</div>
+              <div class="feature-desc">Wide flat plains, sparse life, subtle elevation changes.</div>
+            </div>
+          </div>
+          <div class="feature-card" style="display:flex;align-items:flex-start;gap:16px;padding:24px">
+            <span style="font-size:28px">🌍</span>
+            <div>
+              <div class="feature-title">Kontinental</div>
+              <div class="feature-desc">Large landmass, mixed elevations, balanced vegetation.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer reuse -->
+    <footer>
+      <div class="container">
+        <div class="footer-bottom" style="border-top:none;padding-top:0">
+          <div class="footer-copy">© 2024 HeightForge Studio. All rights reserved.</div>
+          <button class="btn btn-primary btn-sm" onclick="showPage('download')">Download Free →</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: SHOWCASE
+═══════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-showcase">
+  <div style="padding-top:64px">
+    <section class="section" style="background:var(--bg2)">
+      <div class="container">
+        <span class="section-label">Community Showcase</span>
+        <h1 class="section-title">Terrain made with HeightForge</h1>
+        <p class="section-sub">Placeholder images — replace with real screenshots from your community or your own renders.</p>
+      </div>
+    </section>
+    <div class="divider"></div>
+    <section class="section">
+      <div class="container">
+        <div class="showcase-grid">
+          <!-- Featured large -->
+          <div class="showcase-card featured">
+            <div class="showcase-img">
+              <svg viewBox="0 0 600 450" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="600" height="450" fill="#0d0b08"/>
+                <path d="M0,300 C80,260 160,220 240,210 C320,200 400,240 480,220 C540,205 570,195 600,190 L600,450 L0,450Z" fill="rgba(196,163,90,0.15)"/>
+                <path d="M0,340 C100,310 200,280 300,275 C400,270 500,295 600,285 L600,450 L0,450Z" fill="rgba(196,163,90,0.1)"/>
+                <path d="M120,210 C160,180 200,155 250,145 C300,135 350,150 390,135 C430,120 460,105 500,100" stroke="rgba(196,163,90,0.5)" stroke-width="2" fill="none"/>
+                <path d="M0,260 C60,240 120,215 180,205 C240,195 300,215 360,200" stroke="rgba(196,163,90,0.3)" stroke-width="1" fill="none"/>
+                <circle cx="250" cy="145" r="40" fill="none" stroke="rgba(196,163,90,0.15)" stroke-dasharray="4 4"/>
+                <text x="300" y="230" text-anchor="middle" font-family="serif" font-size="14" fill="rgba(196,163,90,0.4)">[ screenshot placeholder ]</text>
+              </svg>
+            </div>
+            <div class="showcase-overlay">
+              <div class="showcase-name">Alpine Island — Vulkaninsel Preset</div>
+              <div class="showcase-meta">PNG-16bit · 4096×4096 · Unity HDRP</div>
+            </div>
+          </div>
+          <!-- Smaller cards -->
+          <div class="showcase-card">
+            <div class="showcase-img">
+              <svg viewBox="0 0 300 225" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="300" height="225" fill="#0f0d0a"/>
+                <path d="M0,150 C50,130 100,115 150,110 C200,105 250,120 300,115 L300,225 L0,225Z" fill="rgba(90,122,154,0.2)"/>
+                <path d="M0,170 C60,155 120,142 180,140 C240,138 270,150 300,145 L300,225 L0,225Z" fill="rgba(90,122,154,0.12)"/>
+                <text x="150" y="110" text-anchor="middle" font-family="serif" font-size="11" fill="rgba(196,163,90,0.3)">[ placeholder ]</text>
+              </svg>
+            </div>
+            <div class="showcase-overlay">
+              <div class="showcase-name">Tundra Flats</div>
+              <div class="showcase-meta">EXR · 8K · Unreal 5</div>
+            </div>
+          </div>
+          <div class="showcase-card">
+            <div class="showcase-img">
+              <svg viewBox="0 0 300 225" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="300" height="225" fill="#0a0f0a"/>
+                <path d="M0,130 C40,100 80,75 130,70 C180,65 230,90 300,80 L300,225 L0,225Z" fill="rgba(90,138,90,0.2)"/>
+                <path d="M0,160 C60,145 120,130 180,128 C240,126 270,140 300,135 L300,225 L0,225Z" fill="rgba(90,138,90,0.1)"/>
+                <text x="150" y="110" text-anchor="middle" font-family="serif" font-size="11" fill="rgba(196,163,90,0.3)">[ placeholder ]</text>
+              </svg>
+            </div>
+            <div class="showcase-overlay">
+              <div class="showcase-name">Dschungelarchipel</div>
+              <div class="showcase-meta">PNG-16bit · 4K · Godot</div>
+            </div>
+          </div>
+          <div class="showcase-card">
+            <div class="showcase-img">
+              <svg viewBox="0 0 300 225" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="300" height="225" fill="#0d0a08"/>
+                <path d="M50,140 C80,100 110,70 150,60 C190,50 220,75 260,65 L270,225 L40,225Z" fill="rgba(196,163,90,0.18)"/>
+                <path d="M0,170 C50,155 100,145 160,143 C220,141 260,155 300,150 L300,225 L0,225Z" fill="rgba(196,163,90,0.08)"/>
+                <text x="150" y="115" text-anchor="middle" font-family="serif" font-size="11" fill="rgba(196,163,90,0.3)">[ placeholder ]</text>
+              </svg>
+            </div>
+            <div class="showcase-overlay">
+              <div class="showcase-name">Vulkaninsel</div>
+              <div class="showcase-meta">TIFF · 8K · Houdini</div>
+            </div>
+          </div>
+          <div class="showcase-card">
+            <div class="showcase-img">
+              <svg viewBox="0 0 300 225" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="300" height="225" fill="#090c0f"/>
+                <path d="M0,160 C60,145 120,132 180,130 C240,128 270,142 300,138 L300,225 L0,225Z" fill="rgba(90,122,154,0.15)"/>
+                <path d="M0,180 C80,170 160,162 240,160 C270,159 285,165 300,163 L300,225 L0,225Z" fill="rgba(90,122,154,0.08)"/>
+                <text x="150" y="125" text-anchor="middle" font-family="serif" font-size="11" fill="rgba(196,163,90,0.3)">[ placeholder ]</text>
+              </svg>
+            </div>
+            <div class="showcase-overlay">
+              <div class="showcase-name">River Delta</div>
+              <div class="showcase-meta">EXR · 4K · Blender</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:60px;background:var(--bg3);border:1px solid var(--border-light);border-radius:8px;padding:40px;text-align:center">
+          <div style="font-size:28px;margin-bottom:12px">🗺️</div>
+          <h3 style="font-family:var(--font-display);font-size:24px;color:var(--white);margin-bottom:10px">Submit your terrain</h3>
+          <p style="max-width:440px;margin:0 auto 24px">Made something with HeightForge? We'd love to feature it here. Send a screenshot and your export settings.</p>
+          <a href="mailto:heightforge@example.com" class="btn btn-outline">Get in touch →</a>
+        </div>
+      </div>
+    </section>
+    <footer><div class="container"><div class="footer-bottom" style="border-top:none;padding:0"><div class="footer-copy">© 2024 HeightForge Studio.</div><button class="btn btn-primary btn-sm" onclick="showPage('download')">Download Free →</button></div></div></footer>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: DOCS
+═══════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-docs">
+  <div style="padding-top:64px">
+    <section style="background:var(--bg2);padding:48px 0 40px">
+      <div class="container">
+        <span class="section-label">Documentation</span>
+        <h1 style="font-family:var(--font-display);font-size:48px;color:var(--white)">Getting Started</h1>
+      </div>
+    </section>
+    <div class="divider"></div>
+    <section class="section-sm">
+      <div class="container">
+        <div class="docs-layout">
+          <nav class="docs-nav">
+            <div class="docs-nav-section">
+              <div class="docs-nav-label">Installation</div>
+              <button class="docs-nav-item active">Requirements</button>
+              <button class="docs-nav-item">Installing Python</button>
+              <button class="docs-nav-item">pip install</button>
+              <button class="docs-nav-item">GPU Setup (optional)</button>
+            </div>
+            <div class="docs-nav-section">
+              <div class="docs-nav-label">Workflow</div>
+              <button class="docs-nav-item">Island Mask</button>
+              <button class="docs-nav-item">Forest & Mountains</button>
+              <button class="docs-nav-item">River Simulation</button>
+              <button class="docs-nav-item">Erosion Nodes</button>
+            </div>
+            <div class="docs-nav-section">
+              <div class="docs-nav-label">Export</div>
+              <button class="docs-nav-item">PNG 16-bit (Unity/Godot)</button>
+              <button class="docs-nav-item">EXR 32-bit (Unreal)</button>
+              <button class="docs-nav-item">TIFF (Houdini/Blender)</button>
+              <button class="docs-nav-item">Tiled RAW (64K+)</button>
+            </div>
+          </nav>
+          <div class="docs-content">
+            <h2>Requirements</h2>
+            <p>HeightForge Studio runs on Windows, macOS, and Linux. You need Python 3.11 or newer and pip.</p>
+            <ul>
+              <li>Python 3.11+ (3.12 recommended)</li>
+              <li>4 GB RAM minimum, 8 GB recommended for 4K+</li>
+              <li>Any GPU optional — CPU mode works fine for most tasks</li>
+            </ul>
+            <div class="callout warning">
+              <p><strong>Note:</strong> HeightForge is distributed as source code for beta. A standalone binary (no Python required) is planned for v1.0.</p>
+            </div>
+
+            <h2>Installation</h2>
+            <h3>1. Install dependencies</h3>
+            <p>Unpack the downloaded archive and run:</p>
+            <div class="code-block"><span class="c"># Core dependencies (required)</span>
+<span class="k">pip</span> install <span class="n">numpy</span> <span class="n">opencv-python</span> <span class="n">PySide6</span> <span class="n">opensimplex</span>
+
+<span class="c"># Optional: 3D viewport</span>
+<span class="k">pip</span> install <span class="n">pyqtgraph</span> <span class="n">PyOpenGL</span>
+
+<span class="c"># Optional: EXR export (Unreal Engine)</span>
+<span class="k">pip</span> install <span class="n">openexr</span></div>
+
+            <h3>2. Launch the application</h3>
+            <div class="code-block"><span class="k">python</span> heightforge/main.py</div>
+
+            <h3>3. GPU acceleration (optional)</h3>
+            <p>For NVIDIA cards install CuPy. The app auto-detects and falls back silently to CPU if unavailable.</p>
+            <div class="code-block"><span class="c"># NVIDIA CUDA 12.x</span>
+<span class="k">pip</span> install <span class="n">cupy-cuda12x</span>
+
+<span class="c"># AMD ROCm</span>
+<span class="k">pip</span> install <span class="n">cupy-rocm</span></div>
+            <div class="callout info">
+              <p>HeightForge tests a real CUDA kernel compile on startup. If GPU fails, it falls back to CPU without crashing. No configuration needed.</p>
+            </div>
+
+            <h2>Your first terrain</h2>
+            <h3>Start screen</h3>
+            <p>Choose your working resolution. <strong>2048×2048</strong> is recommended for most projects — it's fast to iterate and can be upscaled on export. Select a biome preset or start empty.</p>
+
+            <h3>Step 1 — Island Mask</h3>
+            <p>Click <strong>Automatisch Generieren</strong> with the default settings. You'll get a procedural island shape. Adjust <em>Küste</em> (coastline width) and <em>Rauheit</em> (roughness), then regenerate or paint manually with the brush tools.</p>
+            <ul>
+              <li><strong>Malen</strong> — adds to the mask</li>
+              <li><strong>Radieren</strong> — removes from the mask</li>
+              <li><strong>Weichen</strong> — blurs hard edges</li>
+            </ul>
+
+            <h3>Steps 2–4</h3>
+            <p>Work through Forest, Mountains, and Rivers in sequence. Each layer is masked by the island, so nothing spills into the ocean. Use <strong>Ctrl+Z</strong> freely — undo history is 20 levels deep.</p>
+
+            <h3>Erosion Pro</h3>
+            <p>Click the <em>⚗ Erosion Pro</em> button to open the node editor. Add nodes from the palette and drag connections between Output and Input sockets. Run the pipeline — it executes in a background thread so the UI stays responsive.</p>
+            <div class="callout">
+              <p><strong>Tip:</strong> Start with <em>Hydraulic Erosion → Thermal Erosion → Normalize</em>. This is the classic geology sequence and produces realistic results quickly.</p>
+            </div>
+
+            <h2>Export to your engine</h2>
+            <h3>Unity (PNG 16-bit)</h3>
+            <p>Use <strong>Datei → Heightmap exportieren</strong>, choose PNG 16-bit at your target resolution. In Unity: <em>Terrain → Import Raw</em> doesn't work with PNG — instead, use a script or the Terrain Tools package's <em>Import Heightmap</em> with the PNG file.</p>
+
+            <h3>Unreal Engine (EXR or PNG)</h3>
+            <p>Export as EXR 32-bit for maximum precision. In Unreal: Landscape Editor → <em>Import</em> → select the EXR file. Make sure <em>Height Type</em> is set to <em>Float32</em>.</p>
+
+            <h3>Godot (PNG 16-bit)</h3>
+            <p>Export PNG 16-bit. In Godot: create a <code>HeightMapShape3D</code> and use <code>map_data</code> property with a script to load the PNG via <code>Image.load()</code>.</p>
+
+            <h3>Tiled export for very large maps</h3>
+            <p>For resolutions above 8K, use <strong>Tiled Export</strong> in the Export step. It renders in 2048px tiles to avoid memory overflow. Output is always RAW 16-bit binary.</p>
+            <div class="code-block"><span class="c"># Import RAW in Unity via script</span>
+<span class="k">using</span> UnityEngine;
+<span class="k">using</span> System.IO;
+
+<span class="k">byte</span>[] raw = File.ReadAllBytes(<span class="s">"heightmap_8192.raw"</span>);
+<span class="c">// 16-bit little-endian, normalize to 0–1 for TerrainData</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer><div class="container"><div class="footer-bottom" style="border-top:none;padding:0"><div class="footer-copy">© 2024 HeightForge Studio.</div><button class="btn btn-primary btn-sm" onclick="showPage('download')">Download Free →</button></div></div></footer>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: DOWNLOAD
+═══════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-download">
+  <div style="padding-top:64px">
+    <section class="section">
+      <div class="container">
+        <div class="download-hero">
+          <div class="download-glow"></div>
+          <div class="download-version">Version 2.0.0 Beta — May 2024</div>
+          <h1 class="section-title" style="font-size:clamp(42px,5vw,72px)">Download HeightForge</h1>
+          <p style="max-width:520px;margin:0 auto 8px">Free to use. No account. No watermarks. No export limits.<br>Not open source — binary-only distribution.</p>
+          <span class="beta-badge" style="font-size:11px;margin-top:12px;display:inline-block">BETA — expect rough edges</span>
+        </div>
+
+        <div class="download-grid">
+          <div class="download-card">
+            <div class="download-os">🪟</div>
+            <div class="download-platform">Windows</div>
+            <div class="download-arch">x64 · Win 10 / 11</div>
+            <button class="btn btn-primary" style="width:100%" onclick="dlClick('windows')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Download .exe
+            </button>
+            <div class="download-req">
+python 3.11+<br>
+pip install -r requirements.txt<br>
+python main.py
+            </div>
+          </div>
+          <div class="download-card">
+            <div class="download-os">🍎</div>
+            <div class="download-platform">macOS</div>
+            <div class="download-arch">Apple Silicon + Intel</div>
+            <button class="btn btn-primary" style="width:100%" onclick="dlClick('macos')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Download .tar.gz
+            </button>
+            <div class="download-req">
+python 3.11+ (brew install python)<br>
+pip install -r requirements.txt<br>
+python main.py
+            </div>
+          </div>
+          <div class="download-card">
+            <div class="download-os">🐧</div>
+            <div class="download-platform">Linux</div>
+            <div class="download-arch">x64 · Ubuntu, Fedora, Arch</div>
+            <button class="btn btn-primary" style="width:100%" onclick="dlClick('linux')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Download .tar.gz
+            </button>
+            <div class="download-req">
+python3-pip python3-pyside6<br>
+pip install -r requirements.txt<br>
+python main.py
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:32px;max-width:640px;margin:0 auto">
+          <h3 style="font-family:var(--font-display);font-size:22px;color:var(--white);margin-bottom:20px">Quick install (all platforms)</h3>
+          <div class="code-block"><span class="c"># 1. Unpack archive</span>
+tar -xf heightforge_v2.tar.gz
+cd heightforge
+
+<span class="c"># 2. Install dependencies</span>
+pip install numpy opencv-python PySide6 opensimplex
+
+<span class="c"># 3. Optional: 3D + EXR support</span>
+pip install pyqtgraph PyOpenGL openexr
+
+<span class="c"># 4. Optional: GPU (NVIDIA)</span>
+pip install cupy-cuda12x
+
+<span class="c"># 5. Launch</span>
+python main.py</div>
+          <div style="margin-top:20px;display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg2);border-radius:6px;border:1px solid var(--border)">
+            <span style="font-size:20px">💡</span>
+            <p style="margin:0;font-size:13px">GPU acceleration is fully optional. HeightForge runs perfectly on CPU — just slower for large resolutions and erosion pipelines.</p>
+          </div>
+        </div>
+
+        <!-- License note -->
+        <div style="text-align:center;margin-top:48px;padding:32px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
+          <h3 style="font-family:var(--font-display);color:var(--white);margin-bottom:12px">License</h3>
+          <p style="max-width:580px;margin:0 auto 16px">HeightForge is <strong style="color:var(--white)">free to use</strong> for any project — commercial or personal. The source code is proprietary. Redistribution, modification, or resale of the software itself is prohibited.</p>
+          <div style="display:flex;justify-content:center;gap:32px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">
+            <span>✅ Use in commercial games</span>
+            <span>✅ Export unlimited heightmaps</span>
+            <span>✅ Use exported terrain commercially</span>
+            <span>❌ Redistribute the software</span>
+            <span>❌ Modify and share source code</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer><div class="container"><div class="footer-bottom" style="border-top:none;padding:0"><div class="footer-copy">© 2024 HeightForge Studio. Free to use – not open source.</div><div class="footer-legal"><span>v2.0.0 Beta</span></div></div></div></footer>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: CHANGELOG
+═══════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-changelog">
+  <div style="padding-top:64px">
+    <section class="section" style="background:var(--bg2)">
+      <div class="container">
+        <span class="section-label">Release History</span>
+        <h1 class="section-title">Changelog</h1>
+        <p class="section-sub">What changed, what was fixed, what's coming.</p>
+      </div>
+    </section>
+    <div class="divider"></div>
+    <section class="section">
+      <div class="container" style="max-width:760px">
+
+        <div class="changelog-entry latest">
+          <div class="changelog-version">v2.0.0</div>
+          <div class="changelog-date">May 2024 · Current Beta</div>
+          <ul class="changelog-items">
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Project save / load (.hfproj)</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Undo / Redo — 20-level stack (Ctrl+Z / Ctrl+Y)</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>PNG-16bit, TIFF-16bit, EXR-32bit export</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>6 biome presets: Vulkaninsel, Alpen, Wüste, Dschungel, Tundra, Kontinental</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Erosion pipeline runs in QThread — no more UI freeze</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Full menu bar with keyboard shortcuts</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Tooltips on all controls and workflow steps</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Unsaved-changes guard on window close</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Export dialog with format and resolution selection</li>
+            <li class="changelog-item"><span class="cl-tag cl-imp">Imp</span>Export resolution up to 32K×32K (previously only tiled RAW)</li>
+            <li class="changelog-item"><span class="cl-tag cl-fix">Fix</span>Undo snapshot pushed before each brush drag (was missing)</li>
+            <li class="changelog-item"><span class="cl-tag cl-fix">Fix</span>Erosion pipeline error now surfaces as dialog, not crash</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <div class="changelog-version">v1.0.0</div>
+          <div class="changelog-date">March 2024</div>
+          <ul class="changelog-items">
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Initial release</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>5-step workflow: Island, Forest, Mountains, Rivers, Export</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Visual erosion node editor (Hydraulic, Thermal, Wind)</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>GPU acceleration via CuPy (CUDA + ROCm)</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Tiled RAW export up to 65536×65536</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>3D viewport (optional, requires pyqtgraph)</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Organic domain-warp filter for natural transitions</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Brush tool: paint, erase, blur modes</li>
+            <li class="changelog-item"><span class="cl-tag cl-new">New</span>Multi-level noise cache with GPU gaussian blur</li>
+          </ul>
+        </div>
+
+        <div style="margin-top:48px;background:var(--bg3);border:1px solid var(--border-light);border-radius:8px;padding:32px;text-align:center">
+          <h3 style="font-family:var(--font-display);color:var(--white);margin-bottom:8px;font-size:22px">On the roadmap</h3>
+          <p style="margin-bottom:24px;max-width:480px;margin-left:auto;margin-right:auto">Planned for v2.1 and beyond — no timeline promises.</p>
+          <div style="display:flex;flex-direction:column;gap:10px;max-width:480px;margin:0 auto;text-align:left">
+            <div style="display:flex;gap:12px;align-items:center;font-size:14px;color:var(--text-muted)">
+              <span style="color:var(--gold-dim)">◦</span> Standalone binary (no Python required)
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;font-size:14px;color:var(--text-muted)">
+              <span style="color:var(--gold-dim)">◦</span> Random seed control in the UI
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;font-size:14px;color:var(--text-muted)">
+              <span style="color:var(--gold-dim)">◦</span> More biome presets (arctic, canyon, oceanic)
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;font-size:14px;color:var(--text-muted)">
+              <span style="color:var(--gold-dim)">◦</span> Community preset sharing
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;font-size:14px;color:var(--text-muted)">
+              <span style="color:var(--gold-dim)">◦</span> Unit tests for engine algorithms
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer><div class="container"><div class="footer-bottom" style="border-top:none;padding:0"><div class="footer-copy">© 2024 HeightForge Studio.</div><button class="btn btn-primary btn-sm" onclick="showPage('download')">Download Free →</button></div></div></footer>
+  </div>
+</div>
+
+<!-- ── JS: routing + interactions ──────────────────────────────── -->
+<script>
+const pages = ['home','features','showcase','docs','download','changelog'];
+
+function showPage(id) {
+  pages.forEach(p => {
+    document.getElementById('page-'+p).classList.toggle('active', p===id);
+    const nav = document.getElementById('nav-'+p);
+    if(nav) nav.classList.toggle('active', p===id);
+  });
+  window.scrollTo({top:0,behavior:'instant'});
+  history.pushState(null,'','#'+id);
+}
+
+// Handle direct hash navigation
+(function(){
+  const hash = location.hash.replace('#','');
+  if(pages.includes(hash)) showPage(hash);
+})();
+
+// Nav scroll effect
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').style.background =
+    window.scrollY > 40 ? 'rgba(13,11,8,.97)' : 'rgba(13,11,8,.85)';
+});
+
+// Fake download interaction
+function dlClick(platform) {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ Preparing…';
+  btn.disabled = true;
+  setTimeout(()=>{
+    btn.innerHTML = '✓ Download starts on release';
+    setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },2500);
+  },900);
+}
+
+// Subtle terrain animation in hero (shift on mousemove)
+document.addEventListener('mousemove', e => {
+  const bg = document.getElementById('terrain-bg');
+  if(!bg) return;
+  const x = (e.clientX / window.innerWidth - 0.5) * 12;
+  const y = (e.clientY / window.innerHeight - 0.5) * 6;
+  bg.style.transform = `translate(${x}px,${y}px)`;
+});
+</script>
+</body>
+</html>
