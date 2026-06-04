@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://duskforgestudios.github.io/heightforge/sitemap.xml
+Sitemap: https://duskforgestudios.github.io/HeightForgeWeb/sitemap.xml

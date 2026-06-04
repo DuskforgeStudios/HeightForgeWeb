@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://duskforgestudios.github.io/heightforge/</loc>
+    <loc>https://duskforgestudios.github.io/HeightForgeWeb/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://duskforgestudios.github.io/heightforge/#features</loc>
+    <loc>https://duskforgestudios.github.io/HeightForgeWeb/#features</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://duskforgestudios.github.io/heightforge/#plugins</loc>
+    <loc>https://duskforgestudios.github.io/HeightForgeWeb/#plugins</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://duskforgestudios.github.io/heightforge/#download</loc>
+    <loc>https://duskforgestudios.github.io/HeightForgeWeb/#download</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://duskforgestudios.github.io/heightforge/#changelog</loc>
+    <loc>https://duskforgestudios.github.io/HeightForgeWeb/#changelog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://duskforgestudios.github.io/heightforge/#impressum</loc>
+    <loc>https://duskforgestudios.github.io/HeightForgeWeb/#impressum</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
-    <loc>https://duskforgestudios.github.io/heightforge/#datenschutz</loc>
+    <loc>https://duskforgestudios.github.io/HeightForgeWeb/#datenschutz</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
